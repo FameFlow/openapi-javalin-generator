@@ -69,10 +69,10 @@ configure<PublishingExtension> {
             maven {
                 name = "customMaven"
                 url = uri(customMavenUrl)
-                credentials {
-                    username = project.findProperty("customMavenUrlUsername").toString()
-                    password = project.findProperty("customMavenUrlPassword").toString()
-                }
+//                credentials {
+//                    username = project.findProperty("customMavenUrlUsername").toString()
+//                    password = project.findProperty("customMavenUrlPassword").toString()
+//                }
             }
         }
     }
