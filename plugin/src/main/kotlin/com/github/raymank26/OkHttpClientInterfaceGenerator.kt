@@ -93,11 +93,21 @@ class OkHttpClientInterfaceGenerator(
             indent()
             operation.paramDescriptors.forEach { paramDescriptor ->
                 if (paramDescriptor.place == "query") {
-                    addStatement(
-                        """.addQueryParameter(%S, %L.toString())""",
-                        paramDescriptor.name,
-                        paramDescriptor.name + if (paramDescriptor.typePropertyDescriptor.required) "" else "?"
-                    )
+                    add(buildCodeBlock {
+                        addStatement(".apply {")
+                            .withIndent {
+                                addStatement("if (%L != null) {", paramDescriptor.name)
+                                withIndent {
+                                    addStatement(
+                                        """addQueryParameter(%S, %L.toString())""",
+                                        paramDescriptor.name,
+                                        paramDescriptor.name
+                                    )
+                                }
+                                addStatement("}")
+                            }
+                            .addStatement("}")
+                    })
                 }
             }
             addStatement(".build()")
