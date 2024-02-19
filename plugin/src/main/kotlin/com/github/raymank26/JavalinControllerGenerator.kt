@@ -46,13 +46,20 @@ class JavalinControllerGenerator(
                                     "header" -> add("ctx.header(%S)", paramDescriptor.name)
                                 }
                                 when (paramDescriptor.typePropertyDescriptor.type) {
-                                    TypeDescriptor.Int64Type -> add("?.toLong()")
-                                    TypeDescriptor.IntType -> add("?.toInt()")
+                                    TypeDescriptor.Int64Type -> add(
+                                        "?.toLongOrNull() ?: badParamFormat(%S)",
+                                        paramDescriptor.name
+                                    )
+
+                                    TypeDescriptor.IntType -> add(
+                                        "?.toIntOrNull() ?: badParamFormat(%S)",
+                                        paramDescriptor.name
+                                    )
                                     TypeDescriptor.StringType -> Unit
                                     else -> error("Cannot get param of complex type")
                                 }
                                 if (paramDescriptor.typePropertyDescriptor.required && paramDescriptor.place != "path") {
-                                    add("!!")
+                                    add(" ?: noParamFound(%S)", paramDescriptor.name)
                                 }
                                 if (index != paramDescriptors.size - 1) {
                                     add(", ")
@@ -77,6 +84,32 @@ class JavalinControllerGenerator(
                             }
                             .addStatement("}")
                     }
+                })
+                .build()
+        )
+
+        typeBuilder.addFunction(
+            FunSpec.builder("noParamFound")
+                .addParameter("paramName", String::class)
+                .returns(NOTHING)
+                .addCode(buildCodeBlock {
+                    addStatement(
+                        "throw %T(details = mapOf(\"paramName\" to paramName, \"type\" to \"noParamFound\"))",
+                        ClassName("io.javalin.http", "BadRequestResponse")
+                    )
+                })
+                .build()
+        )
+
+        typeBuilder.addFunction(
+            FunSpec.builder("badParamFormat")
+                .addParameter("paramName", String::class)
+                .returns(NOTHING)
+                .addCode(buildCodeBlock {
+                    addStatement(
+                        "throw %T(details = mapOf(\"paramName\" to paramName, \"type\" to \"badParamFormat\"))",
+                        ClassName("io.javalin.http", "BadRequestResponse")
+                    )
                 })
                 .build()
         )

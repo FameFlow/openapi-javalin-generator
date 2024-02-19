@@ -43,10 +43,7 @@ class SpecInterfaceGenerator(
                     required = true
                 )
             )
-            typeSpecBuilder.addFunction(
-                funBuilder
-                    .build()
-            )
+            typeSpecBuilder.addFunction(funBuilder.build())
         }
         FileSpec.builder(basePackageName, "${specMetadata.namePrefix}Spec")
             .addType(typeSpecBuilder.build())
