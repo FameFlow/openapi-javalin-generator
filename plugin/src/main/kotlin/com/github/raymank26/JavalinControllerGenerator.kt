@@ -89,6 +89,18 @@ class JavalinControllerGenerator(
         )
 
         typeBuilder.addFunction(
+            FunSpec.builder("noBodyFound")
+                .returns(NOTHING)
+                .addCode(buildCodeBlock {
+                    addStatement(
+                        "throw %T(details = mapOf(\"type\" to \"noBodyFound\"))",
+                        ClassName("io.javalin.http", "BadRequestResponse")
+                    )
+                })
+                .build()
+        )
+
+        typeBuilder.addFunction(
             FunSpec.builder("noParamFound")
                 .addParameter("paramName", String::class)
                 .returns(NOTHING)
@@ -179,7 +191,7 @@ class JavalinControllerGenerator(
                         add("%S -> ", key.mediaType)
                         add(parser)
                     }
-                    addStatement("else -> error(\"No request found\")")
+                    addStatement("else -> noBodyFound()")
                 }
                 addStatement("}")
             }
