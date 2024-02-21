@@ -40,27 +40,25 @@ class JavalinControllerGenerator(
                             add("(")
                             val paramDescriptors = operationDescriptor.paramDescriptors
                             for ((index, paramDescriptor) in paramDescriptors.withIndex()) {
-                                when (paramDescriptor.place) {
-                                    "query" -> add("ctx.queryParam(%S)", paramDescriptor.name)
-                                    "path" -> add("ctx.pathParam(%S)", paramDescriptor.name)
-                                    "header" -> add("ctx.header(%S)", paramDescriptor.name)
+                                val readFunc = if (paramDescriptor.typePropertyDescriptor.required) {
+                                    "readRequiredParam"
+                                } else {
+                                    "readOptionalParam"
                                 }
-                                when (paramDescriptor.typePropertyDescriptor.type) {
-                                    TypeDescriptor.Int64Type -> add(
-                                        "?.toLongOrNull() ?: badParamFormat(%S)",
-                                        paramDescriptor.name
-                                    )
-
-                                    TypeDescriptor.IntType -> add(
-                                        "?.toIntOrNull() ?: badParamFormat(%S)",
-                                        paramDescriptor.name
-                                    )
-                                    TypeDescriptor.StringType -> Unit
+                                val formatFunc = when (paramDescriptor.typePropertyDescriptor.type) {
+                                    TypeDescriptor.Int64Type -> "{ it.toLongOrNull() }"
+                                    TypeDescriptor.IntType -> "{ it.toIntOrNull() }"
+                                    TypeDescriptor.StringType -> "{ it }"
                                     else -> error("Cannot get param of complex type")
                                 }
-                                if (paramDescriptor.typePropertyDescriptor.required && paramDescriptor.place != "path") {
-                                    add(" ?: noParamFound(%S)", paramDescriptor.name)
+                                val getParamFunc = when (paramDescriptor.place) {
+                                    "query" -> "ctx.queryParam(%S)"
+                                    "path" -> "ctx.pathParam(%S)"
+                                    "header" -> "ctx.header(%S)"
+                                    else -> error("Param place = ${paramDescriptor.place} is not found")
                                 }
+                                val paramName = paramDescriptor.typePropertyDescriptor.name
+                                add("%L(%S, ${getParamFunc}) %L", readFunc, paramName, paramName, formatFunc)
                                 if (index != paramDescriptors.size - 1) {
                                     add(", ")
                                 }
@@ -112,6 +110,72 @@ class JavalinControllerGenerator(
                 })
                 .build()
         )
+
+        typeBuilder.addFunction(
+            FunSpec.builder("readRequiredParam")
+                .addParameter("paramName", String::class)
+                .addParameter("param", String::class.asClassName().copy(nullable = true))
+                .addTypeVariable(TypeVariableName("T"))
+                .addParameter(
+                    "format", LambdaTypeName.get(
+                        parameters = listOf(ParameterSpec("str", String::class.asTypeName())),
+                        returnType = TypeVariableName("T").copy(nullable = true)
+                    )
+                )
+                .returns(TypeVariableName("T"))
+                .addCode(buildCodeBlock {
+                    add(
+                        """
+                        |if (param.isNullOrEmpty()) {
+                        |    noParamFound(paramName)
+                        |}
+                        |return format(param) ?: badParamFormat(paramName)
+                    """.trimMargin()
+                    )
+                })
+                .build()
+        )
+
+        typeBuilder.addFunction(
+            FunSpec.builder("readOptionalParam")
+                .addParameter("paramName", String::class)
+                .addParameter("param", String::class.asClassName().copy(nullable = true))
+                .addTypeVariable(TypeVariableName("T"))
+                .addParameter(
+                    "format", LambdaTypeName.get(
+                        parameters = listOf(ParameterSpec("str", String::class.asTypeName())),
+                        returnType = TypeVariableName("T").copy(nullable = true)
+                    )
+                )
+                .returns(TypeVariableName("T").copy(nullable = true))
+                .addCode(buildCodeBlock {
+                    add(
+                        """
+                        |if (param.isNullOrEmpty()) {
+                        |    return null
+                        |}
+                        |return format(param) ?: badParamFormat(paramName)
+                    """.trimMargin()
+                    )
+                })
+                .build()
+        )
+
+
+//        fun <T> readRequiredParam(paramName: String, param: String?, format: (String) -> T?): T {
+//            if (param.isNullOrEmpty()) {
+//                noParamFound(paramName)
+//            }
+//            return format(param) ?: badParamFormat(paramName)
+//        }
+//
+//        fun <T> readOptionalParam(paramName: String, param: String?, format: (String) -> T?): T? {
+//            if (param == null) {
+//                return null
+//            }
+//            return format(param) ?: badParamFormat(paramName)
+//        }
+
 
         typeBuilder.addFunction(
             FunSpec.builder("badParamFormat")
