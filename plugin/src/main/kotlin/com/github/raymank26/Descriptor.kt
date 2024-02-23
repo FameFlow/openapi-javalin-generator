@@ -60,6 +60,8 @@ sealed interface TypeDescriptor {
 
     data object Int64Type : TypeDescriptor
 
+    data object FloatType : TypeDescriptor
+
     data object IntType : TypeDescriptor
 
     data class RefType(val name: String) : TypeDescriptor

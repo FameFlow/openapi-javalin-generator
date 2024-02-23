@@ -59,6 +59,7 @@ class SpecInterfaceGenerator(
             is TypeDescriptor.RefType -> ClassName(basePackageName, descriptor.name)
             TypeDescriptor.Int64Type -> Long::class.java.asTypeName()
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
+            TypeDescriptor.FloatType -> Float::class.java.asTypeName()
             TypeDescriptor.StringType -> ClassName("kotlin", "String")
             TypeDescriptor.BooleanType -> Boolean::class.java.asTypeName()
         }.copy(nullable = !required)

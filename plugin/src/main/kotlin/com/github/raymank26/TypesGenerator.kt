@@ -150,6 +150,7 @@ class TypesGenerator(
             }
             TypeDescriptor.Int64Type -> Long::class.java.asTypeName()
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
+            TypeDescriptor.FloatType -> Float::class.java.asTypeName()
             TypeDescriptor.StringType -> ClassName("kotlin", "String")
             TypeDescriptor.BooleanType -> Boolean::class.java.asTypeName()
         }
@@ -172,10 +173,16 @@ class TypesGenerator(
                 .builder(ClassName("com.fasterxml.jackson.annotation", "JsonProperty"))
                 .addMember("%S", property.name)
                 .build()
+            val jsonPropertyField = AnnotationSpec
+                .builder(ClassName("com.fasterxml.jackson.annotation", "JsonProperty"))
+                .addMember("%S", property.name)
+                .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
+                .build()
             PropertySpec
                 .builder(property.name.decapitalized(), generateTypeDescriptor(property.type, property.required))
                 .initializer(property.name.decapitalized())
                 .addAnnotation(jsonProperty)
+                .addAnnotation(jsonPropertyField)
                 .build()
         }
         addProperties(properties)

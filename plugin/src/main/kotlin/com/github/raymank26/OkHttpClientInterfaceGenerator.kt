@@ -262,6 +262,7 @@ class OkHttpClientInterfaceGenerator(
         val baseType = when (paramDescriptor.type) {
             TypeDescriptor.Int64Type -> Long::class.java.asTypeName()
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
+            TypeDescriptor.FloatType -> Float::class.java.asTypeName()
             TypeDescriptor.StringType -> ClassName("kotlin", "String")
             else -> error("Unsupported type")
         }

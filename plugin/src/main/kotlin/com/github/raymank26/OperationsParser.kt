@@ -194,6 +194,7 @@ class OperationsParser(private val spec: OpenAPI) {
         return when (val type = property.type) {
             "integer" -> if (property.format == "int64") TypeDescriptor.Int64Type else TypeDescriptor.IntType
             "string" -> TypeDescriptor.StringType
+            "number" -> TypeDescriptor.FloatType
             "boolean" -> TypeDescriptor.BooleanType
             "array" -> {
                 TypeDescriptor.Array(null, getPropertyType(property.items))

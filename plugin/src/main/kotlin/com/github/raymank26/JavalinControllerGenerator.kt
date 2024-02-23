@@ -48,6 +48,7 @@ class JavalinControllerGenerator(
                                 val formatFunc = when (paramDescriptor.typePropertyDescriptor.type) {
                                     TypeDescriptor.Int64Type -> "{ it.toLongOrNull() }"
                                     TypeDescriptor.IntType -> "{ it.toIntOrNull() }"
+                                    TypeDescriptor.FloatType -> "{ it.toFloatOrNull() }"
                                     TypeDescriptor.StringType -> "{ it }"
                                     else -> error("Cannot get param of complex type")
                                 }
@@ -225,6 +226,7 @@ class JavalinControllerGenerator(
                                         when (property.type) {
                                             TypeDescriptor.Int64Type -> addStatement(".toLong(),")
                                             TypeDescriptor.IntType -> addStatement(".toInt(),")
+                                            TypeDescriptor.FloatType -> addStatement(".toFloat(),")
                                             TypeDescriptor.StringType -> addStatement(".toString(),")
                                             else -> error("Not supported type = ${property.type}")
                                         }
