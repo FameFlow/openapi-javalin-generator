@@ -20,11 +20,14 @@ class OperationsParser(private val spec: OpenAPI) {
             if (path.value.post != null) {
                 pathOperations.add(parseOperation(path.key, path.value.post, "post"))
             }
+            if (path.value.patch != null) {
+                pathOperations.add(parseOperation(path.key, path.value.patch, "patch"))
+            }
             if (path.value.put != null) {
                 pathOperations.add(parseOperation(path.key, path.value.put, "put"))
             }
             if (path.value.delete != null) {
-                pathOperations.add(parseOperation(path.key, path.value.put, "delete"))
+                pathOperations.add(parseOperation(path.key, path.value.delete, "delete"))
             }
             pathOperations
         }
@@ -131,6 +134,7 @@ class OperationsParser(private val spec: OpenAPI) {
                     "201" -> "Created"
                     "404" -> "NotFound"
                     "302" -> "Redirect"
+                    "422" -> "UnprocessableContent"
                     else -> error("Cannot infer name from code = $code")
                 }
                 ResponseBodySealedOption.JustStatus(clsName, headersProvider(clsName))

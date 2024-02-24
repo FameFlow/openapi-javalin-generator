@@ -170,8 +170,8 @@ class OkHttpClientInterfaceGenerator(
                 }
                 addStatement("}")
             })
-        } else if (operation.method == "post") {
-            funSpec.addStatement("requestBuilder.post(\"\".%M())", toRequestBody)
+        } else if (setOf("post", "patch", "put", "delete").contains(operation.method)) {
+            funSpec.addStatement("requestBuilder.%L(\"\".%M())", operation.method, toRequestBody)
         }
 
         funSpec.addCode(buildCodeBlock {
