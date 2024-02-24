@@ -17,6 +17,7 @@ class TypesGenerator(
     private val alreadyGenerated: MutableMap<String, TypeName> = mutableMapOf()
 
     fun generateTypes() {
+        log.info("Starting type generations, specMetadata = {}", specMetadata)
         specMetadata.refs.forEach { (_, value: TypeDescriptor) ->
             generateTypeDescriptor(value, true)
         }
@@ -36,7 +37,9 @@ class TypesGenerator(
             is TypeDescriptor.Array -> {
                 val innerTypeName = generateTypeDescriptor(value.itemDescriptor, true)
                 val name = value.clsName
-                val listType = bestGuess("kotlin.collections.List").parameterizedBy(innerTypeName)
+                val listType = bestGuess("kotlin.collections.List")
+                    .parameterizedBy(innerTypeName)
+                    .copy(nullable = !required)
                 if (name == null) {
                     return listType
                 }
