@@ -135,6 +135,7 @@ class OperationsParser(private val spec: OpenAPI) {
                     "404" -> "NotFound"
                     "302" -> "Redirect"
                     "422" -> "UnprocessableContent"
+                    "402" -> "PaymentRequired"
                     else -> error("Cannot infer name from code = $code")
                 }
                 ResponseBodySealedOption.JustStatus(clsName, headersProvider(clsName))

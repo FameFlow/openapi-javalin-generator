@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.raymank26"
-version = project.findProperty("version")?.takeIf { it != "unspecified" } ?: "1.8-SNAPSHOT"
+version = project.findProperty("version")?.takeIf { it != "unspecified" } ?: "1.9-SNAPSHOT"
 
 repositories {
     mavenCentral()
