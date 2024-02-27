@@ -72,14 +72,6 @@ class TypesGenerator(
 
             is TypeDescriptor.RefType -> bestGuess(basePackageName + "." + value.name.split("/").last())
             is TypeDescriptor.Object -> {
-                if (value.properties.isEmpty()) {
-                    return ClassName("kotlin.collections", "Map").parameterizedBy(
-                        listOf(
-                            ClassName("kotlin", "String"),
-                            ClassName("kotlin", "Any").copy(nullable = true)
-                        )
-                    )
-                }
                 val name = value.clsName!!
                 alreadyGenerated[name]?.let {
                     return it
@@ -164,7 +156,18 @@ class TypesGenerator(
         val constructorProperties = descriptors
             .map {
                 ParameterSpec(it.name.decapitalized(), generateTypeDescriptor(it.type, it.required))
-            }
+            }.toMutableList()
+        val additionalPropertiesType = ClassName("kotlin.collections", "Map").parameterizedBy(
+            listOf(
+                ClassName("kotlin", "String"),
+                ClassName("kotlin", "Any").copy(nullable = true)
+            )
+        )
+        if (descriptors.isEmpty()) {
+            constructorProperties.add(
+                ParameterSpec("additionalProperties", additionalPropertiesType)
+            )
+        }
         primaryConstructor(
             FunSpec.constructorBuilder()
                 .addParameters(constructorProperties)
@@ -187,6 +190,24 @@ class TypesGenerator(
                 .addAnnotation(jsonProperty)
                 .addAnnotation(jsonPropertyField)
                 .build()
+        }.toMutableList()
+        if (properties.isEmpty()) {
+            val jsonAnyGetter = AnnotationSpec
+                .builder(ClassName("com.fasterxml.jackson.annotation", "JsonAnyGetter"))
+                .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                .build()
+            val jsonAnySetter = AnnotationSpec
+                .builder(ClassName("com.fasterxml.jackson.annotation", "JsonAnySetter"))
+                .build()
+            properties.add(
+                PropertySpec
+                    .builder("additionalProperties", additionalPropertiesType)
+                    .initializer("additionalProperties")
+                    .addAnnotation(jsonAnyGetter)
+                    .addAnnotation(jsonAnySetter)
+                    .build()
+
+            )
         }
         addProperties(properties)
     }
