@@ -162,20 +162,32 @@ class JavalinControllerGenerator(
                 .build()
         )
 
-
-//        fun <T> readRequiredParam(paramName: String, param: String?, format: (String) -> T?): T {
-//            if (param.isNullOrEmpty()) {
-//                noParamFound(paramName)
-//            }
-//            return format(param) ?: badParamFormat(paramName)
-//        }
-//
-//        fun <T> readOptionalParam(paramName: String, param: String?, format: (String) -> T?): T? {
-//            if (param == null) {
-//                return null
-//            }
-//            return format(param) ?: badParamFormat(paramName)
-//        }
+        typeBuilder.addFunction(
+            FunSpec.builder("getValidBody")
+                .addTypeVariable(TypeVariableName("T"))
+                .addParameter(
+                    "parser", LambdaTypeName.get(
+                        parameters = listOf(),
+                        returnType = TypeVariableName("T").copy(nullable = false)
+                    )
+                )
+                .returns(TypeVariableName("T"))
+                .addCode(buildCodeBlock {
+                    add(
+                        """
+                        |try {
+                        |   return parser.invoke()
+                        |} catch (e: Exception) {
+                        |   if (e is BadRequestResponse) {
+                        |       throw e
+                        |   }
+                        |   throw BadRequestResponse(details = mapOf("type" to "illegalBody"))
+                        |}
+                    """.trimMargin()
+                    )
+                })
+                .build()
+        )
 
 
         typeBuilder.addFunction(
@@ -204,7 +216,7 @@ class JavalinControllerGenerator(
     ) {
         val requestBodyBlock = if (requestBody != null) {
             buildCodeBlock {
-                addStatement("val body = when (ctx.contentType()?.split(\";\")?.first()) {")
+                addStatement("val body = getValidBody { when (ctx.contentType()?.split(\";\")?.first()) {")
                 withIndent {
                     requestBody.contentTypeToType.forEach { (key, value): Map.Entry<RequestBodyMediaType, TypeDescriptor> ->
                         val parser = when (key) {
@@ -259,7 +271,7 @@ class JavalinControllerGenerator(
                     }
                     addStatement("else -> noBodyFound()")
                 }
-                addStatement("}")
+                addStatement("}}")
             }
         } else {
             CodeBlock.builder().build()
