@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.raymank26"
-version = project.findProperty("version")?.takeIf { it != "unspecified" } ?: "1.11-SNAPSHOT"
+version = project.findProperty("version")?.takeIf { it != "unspecified" } ?: "1.12-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -62,6 +62,10 @@ val sourcesJar by tasks.registering(Jar::class) {
     from(sourceSets.main.get().allSource)
 }
 
+java {
+    withSourcesJar()
+}
+
 configure<PublishingExtension> {
     repositories {
         val customMavenUrl = findProperty("customMavenUrl")
@@ -81,7 +85,6 @@ configure<PublishingExtension> {
             groupId = project.group.toString()
             artifactId = "javalin-openapi"
             version = project.version.toString()
-            artifact(sourcesJar.get())
             from(components["java"])
         }
     }

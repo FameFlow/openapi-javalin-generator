@@ -19,7 +19,7 @@ class SpecInterfaceGenerator(
             for (paramDescriptor in operationDescriptor.paramDescriptors) {
                 funBuilder.addParameter(
                     ParameterSpec(
-                        paramDescriptor.name,
+                        transformToCorrectName(paramDescriptor.name),
                         getParamTypeName(
                             paramDescriptor.typePropertyDescriptor.name,
                             paramDescriptor.typePropertyDescriptor.type,
@@ -64,4 +64,26 @@ class SpecInterfaceGenerator(
             TypeDescriptor.BooleanType -> Boolean::class.java.asTypeName()
         }.copy(nullable = !required)
     }
+}
+
+private fun transformToCorrectName(name: String): String {
+    val resChars = mutableListOf<Char>()
+
+    var index = 0
+    while (index < name.length) {
+        val c = name[index]
+        if (index == 0 && c.isUpperCase()) {
+            resChars.add(c.lowercaseChar())
+            index++
+            continue
+        }
+        if (c == '_' || c == '-') {
+            resChars.add(name[index + 1].uppercase()[0])
+            index += 2
+            continue
+        }
+        resChars.add(name[index])
+        index++
+    }
+    return resChars.joinToString("")
 }
