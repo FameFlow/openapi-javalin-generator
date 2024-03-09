@@ -39,6 +39,13 @@ data class RequestBody(
     val required: Boolean
 )
 
+sealed interface SecurityScheme {
+
+    data object BearerToken : SecurityScheme
+
+    data class SecurityHeader(val headerName: String) : SecurityScheme
+}
+
 sealed class RequestBodyMediaType(val clsName: String, val mediaType: String) {
     data object Json : RequestBodyMediaType("Json", "application/json")
     data object Xml : RequestBodyMediaType("Xml", "application/xml")

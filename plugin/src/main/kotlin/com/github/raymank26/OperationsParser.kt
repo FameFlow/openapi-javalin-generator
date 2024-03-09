@@ -5,7 +5,9 @@ import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponses
+import io.swagger.v3.oas.models.security.SecurityScheme
 import org.gradle.configurationcache.extensions.capitalized
+import io.swagger.v3.oas.models.security.SecurityScheme.Type as SecuritySchemeType
 
 class OperationsParser(private val spec: OpenAPI) {
 
@@ -14,20 +16,21 @@ class OperationsParser(private val spec: OpenAPI) {
     fun parseSpec(): SpecMetadata {
         val operations = spec.paths.flatMap { path ->
             val pathOperations = mutableListOf<OperationDescriptor>()
+            val securitySchemes = parseSecuritySchemes(spec.components.securitySchemes ?: emptyMap())
             if (path.value.get != null) {
-                pathOperations.add(parseOperation(path.key, path.value.get, "get"))
+                pathOperations.add(parseOperation(path.key, path.value.get, "get", securitySchemes))
             }
             if (path.value.post != null) {
-                pathOperations.add(parseOperation(path.key, path.value.post, "post"))
+                pathOperations.add(parseOperation(path.key, path.value.post, "post", securitySchemes))
             }
             if (path.value.patch != null) {
-                pathOperations.add(parseOperation(path.key, path.value.patch, "patch"))
+                pathOperations.add(parseOperation(path.key, path.value.patch, "patch", securitySchemes))
             }
             if (path.value.put != null) {
-                pathOperations.add(parseOperation(path.key, path.value.put, "put"))
+                pathOperations.add(parseOperation(path.key, path.value.put, "put", securitySchemes))
             }
             if (path.value.delete != null) {
-                pathOperations.add(parseOperation(path.key, path.value.delete, "delete"))
+                pathOperations.add(parseOperation(path.key, path.value.delete, "delete", securitySchemes))
             }
             pathOperations
         }
@@ -35,17 +38,44 @@ class OperationsParser(private val spec: OpenAPI) {
         return SpecMetadata(namePrefix, operations, refsBuilder.build())
     }
 
+    private fun parseSecuritySchemes(securitySchemes: Map<String, SecurityScheme>):
+            Map<String, com.github.raymank26.SecurityScheme> {
+
+        return securitySchemes.mapValues { entry ->
+            when {
+                entry.value.type == SecuritySchemeType.HTTP && entry.value.scheme == "bearer" ->
+                    com.github.raymank26.SecurityScheme.BearerToken
+
+                entry.value.type == SecuritySchemeType.APIKEY && entry.value.`in` == SecurityScheme.In.HEADER ->
+                    com.github.raymank26.SecurityScheme.SecurityHeader(entry.value.name)
+
+                else -> error("Unsupported security scheme")
+            }
+        }
+    }
+
     private fun parseOperation(
         path: String,
         operation: Operation,
         method: String,
+        securitySchemes: Map<String, com.github.raymank26.SecurityScheme>,
     ): OperationDescriptor {
+
+        val authScheme = operation.security?.firstOrNull()
+            ?: spec.security?.firstOrNull()
+        val securitySchemeName = authScheme?.keys?.first()
+
+        val securityScheme = securitySchemeName
+            ?.let {
+                securitySchemes[securitySchemeName]
+                    ?: error("Security scheme is not found by key = $securitySchemeName")
+            }
         return OperationDescriptor(
             path = path,
             method = method,
             summary = operation.summary,
             operationId = operation.operationId,
-            paramDescriptors = parseParameters(operation.parameters ?: emptyList()),
+            paramDescriptors = parseParameters(operation.parameters ?: emptyList(), securityScheme),
             requestBody = parseRequestBody(operation),
             responseBody = parseResponses(operation, operation.responses),
         )
@@ -211,8 +241,12 @@ class OperationsParser(private val spec: OpenAPI) {
         }
     }
 
-    private fun parseParameters(parameters: List<Parameter>): List<ParamDescriptor> {
-        return parameters.map { parameter ->
+    private fun parseParameters(
+        parameters: List<Parameter>,
+        securityScheme: com.github.raymank26.SecurityScheme?
+    ): List<ParamDescriptor> {
+
+        val baseParameters = parameters.map { parameter ->
             ParamDescriptor(
                 name = parameter.name,
                 place = parameter.`in`,
@@ -223,7 +257,28 @@ class OperationsParser(private val spec: OpenAPI) {
                 )
             )
         }
+        val authParam = when (securityScheme) {
+            com.github.raymank26.SecurityScheme.BearerToken -> securityHeaderParam("Authorization")
+            is com.github.raymank26.SecurityScheme.SecurityHeader -> securityHeaderParam(securityScheme.headerName)
+            null -> null
+        }
+        return if (authParam != null) {
+            listOf(authParam) + baseParameters
+        } else {
+            baseParameters
+        }
     }
+
+    private fun securityHeaderParam(headerName: String) = ParamDescriptor(
+        name = headerName,
+        place = "header",
+        typePropertyDescriptor = TypePropertyDescriptor(
+            name = headerName,
+            type = TypeDescriptor.StringType,
+            format = null,
+            required = true
+        )
+    )
 }
 
 data class SpecMetadata(

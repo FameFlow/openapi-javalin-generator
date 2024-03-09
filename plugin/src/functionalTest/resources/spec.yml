@@ -1,103 +1,281 @@
-swagger: "2.0"
+openapi: "3.0.0"
 info:
   version: 1.0.0
-  title: Swagger Petstore
-  license:
-    name: MIT
-host: petstore.swagger.io
-basePath: /v1
-schemes:
-  - http
-consumes:
-  - application/json
-produces:
-  - application/json
+  title: FameFlow API
+servers:
+  - url: https://api.fameflow.ai
+  - url: https://apitest.fameflow.ai
+  - url: http://localhost:7070
 paths:
-  /pets:
-    get:
-      summary: List all pets
-      operationId: listPets
+  /admin-api/task:
+    post:
       tags:
-        - pets
+        - Task
+      summary: Runs a task
+      operationId: runTask
       parameters:
-        - name: limit
+        - name: ff-service-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: task_name
           in: query
-          description: How many items to return at one time (max 100)
-          required: false
-          type: integer
-          format: int32
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskParameters'
       responses:
         "200":
-          description: A paged array of pets
-          headers:
-            x-next:
-              type: string
-              description: A link to the next page of responses
-          schema:
-            $ref: '#/definitions/Pets'
+          description: OK
         default:
-          description: unexpected error
-          schema:
-            $ref: '#/definitions/Error'
-    post:
-      summary: Create a pet
-      operationId: createPets
-      tags:
-        - pets
-      responses:
-        "201":
-          description: Null response
-        default:
-          description: unexpected error
-          schema:
-            $ref: '#/definitions/Error'
-  /pets/{petId}:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin-api/influencer/pending-moderation:
     get:
-      summary: Info for a specific pet
-      operationId: showPetById
       tags:
-        - pets
+        - Admin
+      security:
+        - BearerAuth: [ ]
+      summary: Returns a list of influencers with pending moderation
+      operationId: getPendingModerationInfluencersPage
       parameters:
-        - name: petId
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfluencerAdminPage'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin-api/influencer/{influencer_id}/photo:
+    get:
+      tags:
+        - Admin
+      summary: Returns a list of photos by an influencer
+      operationId: getInfluencerPhotos
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: influencer_id
           in: path
           required: true
-          description: The id of the pet to retrieve
-          type: string
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
-          description: Expected response to a valid request
-          schema:
-            $ref: '#/definitions/Pet'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfluencerPhotosAdminPage'
         default:
-          description: unexpected error
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Admin
+      summary: Updates status of a specific photo of an influencer photo set
+      operationId: updateInfluencerPhoto
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
           schema:
-            $ref: '#/definitions/Error'
-definitions:
-  Pet:
-    type: "object"
-    required:
-      - id
-      - name
-    properties:
-      id:
-        type: integer
-        format: int64
-      name:
-        type: string
-      tag:
-        type: string
-  Pets:
-    type: array
-    items:
-      $ref: '#/definitions/Pet'
-  Error:
-    type: "object"
-    required:
-      - code
-      - message
-    properties:
-      code:
-        type: integer
-        format: int32
-      message:
-        type: string
+            type: string
+        - name: influencer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InfluencerPhotoUpdate'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfluencerPhotoAdmin'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin-api/influencer/{influencer_id}/dataset:
+    post:
+      tags:
+        - Admin
+      summary: Requests creation of a dataset on influencer approved photos
+      operationId: requestInfluencerDatasetCreation
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: influencer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfluencerDatasetCreation'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    TaskParameters:
+      type: "object"
+    InfluencerAdminPage:
+      type: "object"
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InfluencerAdminItem'
+        total:
+          type: integer
+    InfluencerAdminItem:
+      type: "object"
+      required:
+        - id
+        - first_name
+        - last_name
+      properties:
+        id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        avatar:
+          type: string
+    InfluencerPhotosAdminPage:
+      type: "object"
+      required:
+        - items
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InfluencerPhotoAdmin'
+        total:
+          type: integer
+    InfluencerPhotoAdmin:
+      type: "object"
+      required:
+        - id
+        - influencer_id
+        - status
+        - url
+        - photo_type
+        - created_at_utc
+      properties:
+        id:
+          type: string
+          format: uuid
+        influencer_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ approved, declined, waiting_approval ]
+        url:
+          type: string
+        photo_type:
+          type: string
+        created_at_utc:
+          type: string
+    InfluencerPhotoUpdate:
+      type: "object"
+      required:
+        - photo_id
+        - status
+      properties:
+        photo_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ approved, declined ]
+    InfluencerDatasetCreation:
+      type: "object"
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+    Error:
+      type: "object"
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
