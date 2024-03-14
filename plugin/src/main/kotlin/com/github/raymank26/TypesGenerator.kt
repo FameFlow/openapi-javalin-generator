@@ -184,11 +184,17 @@ class TypesGenerator(
                 .addMember("%S", property.name)
                 .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
                 .build()
+            val jsonPropertyGetter = AnnotationSpec
+                .builder(ClassName("com.fasterxml.jackson.annotation", "JsonProperty"))
+                .addMember("%S", property.name)
+                .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                .build()
             PropertySpec
                 .builder(property.name.decapitalized(), generateTypeDescriptor(property.type, property.required))
                 .initializer(property.name.decapitalized())
                 .addAnnotation(jsonProperty)
                 .addAnnotation(jsonPropertyField)
+                .addAnnotation(jsonPropertyGetter)
                 .build()
         }.toMutableList()
         if (properties.isEmpty()) {
