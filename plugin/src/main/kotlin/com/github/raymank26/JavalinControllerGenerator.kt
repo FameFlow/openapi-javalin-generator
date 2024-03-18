@@ -50,6 +50,7 @@ class JavalinControllerGenerator(
                                     TypeDescriptor.IntType -> "{ it.toIntOrNull() }"
                                     TypeDescriptor.FloatType -> "{ it.toFloatOrNull() }"
                                     TypeDescriptor.StringType -> "{ it }"
+                                    TypeDescriptor.BooleanType -> "{ it.toBooleanStrictOrNull() }"
                                     else -> error("Cannot get param of complex type")
                                 }
                                 val getParamFunc = when (paramDescriptor.place) {
@@ -240,6 +241,7 @@ class JavalinControllerGenerator(
                                             TypeDescriptor.IntType -> addStatement(".toInt(),")
                                             TypeDescriptor.FloatType -> addStatement(".toFloat(),")
                                             TypeDescriptor.StringType -> addStatement(".toString(),")
+                                            TypeDescriptor.StringType -> addStatement(".toBooleanStrict(),")
                                             else -> error("Not supported type = ${property.type}")
                                         }
                                     }

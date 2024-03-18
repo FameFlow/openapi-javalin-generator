@@ -264,6 +264,7 @@ class OkHttpClientInterfaceGenerator(
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
             TypeDescriptor.FloatType -> Float::class.java.asTypeName()
             TypeDescriptor.StringType -> ClassName("kotlin", "String")
+            TypeDescriptor.BooleanType -> Boolean::class.java.asTypeName()
             else -> error("Unsupported type")
         }
         return baseType.copy(nullable = !paramDescriptor.required)
