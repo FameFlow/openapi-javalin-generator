@@ -143,6 +143,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pets/{petId}/avatar:
+    get:
+      summary: Get avatar of a pet
+      operationId: getAvatarByPetId
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: The id of the pet to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            image/*:
+              schema:
+                $ref: '#/components/schemas/PetAvatar'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     CustomPet:
@@ -150,7 +176,6 @@ components:
       required:
         - stringLabels
         - intLabels
-        - mappers
       properties:
         intLabels:
           type: array
@@ -160,8 +185,6 @@ components:
           type: array
           items:
             type: string
-        mappers:
-          type: object
     Pet:
       type: "object"
       required:
@@ -179,6 +202,9 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Pet'
+    PetAvatar:
+      type: string
+      format: binary
     Error:
       type: "object"
       required:

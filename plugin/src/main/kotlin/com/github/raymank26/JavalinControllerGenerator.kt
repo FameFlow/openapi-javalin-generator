@@ -349,10 +349,24 @@ class JavalinControllerGenerator(
                                 addHeaders(option)
                                 addStatement("ctx.status(%L)", statusCode)
                                 if (option is ResponseBodySealedOption.Parametrized) {
-                                    addStatement(
-                                        "ctx.json(response.%L)",
-                                        option.clsName.decapitalized()
-                                    )
+                                    if (!option.isFile) {
+                                        addStatement(
+                                            "ctx.json(response.%L)",
+                                            option.clsName.decapitalized()
+                                        )
+                                    } else {
+                                        addStatement(
+                                            """
+                                            cleanupHandler.add { response.file.delete() }
+                                            response.file.%M().use {
+                                                it.%M(ctx.outputStream())
+                                            }
+                                        """.trimIndent(),
+                                            MemberName("kotlin.io", "inputStream"),
+                                            MemberName("kotlin.io", "copyTo")
+                                        )
+
+                                    }
                                 }
                             }
                             .addStatement("}")

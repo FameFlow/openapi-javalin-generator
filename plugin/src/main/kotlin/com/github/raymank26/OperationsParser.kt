@@ -117,17 +117,20 @@ class OperationsParser(private val spec: OpenAPI) {
         val clsNameToTypeDescriptor = mutableMapOf<String, List<TypeDescriptor>>()
 
         responses.forEach { (code, response) ->
-            val responseCls = response.content?.get("application/json")
             val headers = response.headers?.map {
                 ResponseHeader(getTypePropertyDescriptor(it.key.decapitalized(), it.value.schema, it.value.required))
             } ?: emptyList()
+            val contentType = response.content?.keys?.first()
 
-            val descriptor = if (responseCls != null) {
-                val ref = responseCls.schema.`$ref`
+            val descriptor = if (contentType != null) {
+                val responseCls = response.content[contentType]
+                val ref = responseCls!!.schema.`$ref`
                 val optionClsName = ref.split("/").last()
-                val schema = spec.components.schemas[optionClsName]!!
+                val schema =
+                    spec.components.schemas[optionClsName] ?: error("No schema found for contentType = $contentType")
                 parseTypeDescriptor(ref, optionClsName, schema)
             } else null
+
             val headersDescriptorProvider = { optionClsName: String ->
                 if (headers.isNotEmpty()) {
                     TypeDescriptor.Object(
@@ -151,12 +154,20 @@ class OperationsParser(private val spec: OpenAPI) {
         return when (descriptor) {
             is TypeDescriptor.Object -> ResponseBodySealedOption.Parametrized(
                 descriptor.clsName!!,
-                headersProvider(descriptor.clsName)
+                headersProvider(descriptor.clsName),
+                false
             )
 
             is TypeDescriptor.Array -> ResponseBodySealedOption.Parametrized(
                 descriptor.clsName!!,
-                headersProvider(descriptor.clsName)
+                headersProvider(descriptor.clsName),
+                false
+            )
+
+            is TypeDescriptor.FileType -> ResponseBodySealedOption.Parametrized(
+                "File",
+                null,
+                true
             )
 
             else -> {
@@ -199,7 +210,10 @@ class OperationsParser(private val spec: OpenAPI) {
                 }
                 TypeDescriptor.Object(clsName, properties)
             }
-
+            "string" -> {
+                require(schema.format == "binary")
+                TypeDescriptor.FileType
+            }
             null -> TypeDescriptor.Object(clsName, emptyList())
             else -> error("not supported type = " + schema.type)
         }

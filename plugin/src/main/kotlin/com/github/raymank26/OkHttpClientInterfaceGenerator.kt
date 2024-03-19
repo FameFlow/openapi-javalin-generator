@@ -2,6 +2,7 @@ package com.github.raymank26
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName.Companion.bestGuess
+import java.io.File
 import java.nio.file.Path
 
 class OkHttpClientInterfaceGenerator(
@@ -56,9 +57,27 @@ class OkHttpClientInterfaceGenerator(
                 .build()
         )
 
+
         specMetadata.operations.forEach { operation ->
             typeSpec.addFunction(createFunction(operation))
         }
+        typeSpec.addFunction(
+            FunSpec.builder("readFileBody")
+                .addParameter(ParameterSpec("body", ClassName("okhttp3", "ResponseBody")))
+                .returns(File::class.java)
+                .addCode(
+                    """
+                        val path = %T.createTempFile("tmp-", ".tmp")
+                        body.byteStream().copyTo(path.%M())
+                        val file = path.toFile()
+                        file.deleteOnExit()
+                        return file
+            """.trimIndent(),
+                    ClassName("java.nio.file", "Files"),
+                    MemberName("kotlin.io.path", "outputStream")
+                )
+                .build()
+        )
         FileSpec.builder(ClassName(basePackageName, "Client"))
             .addType(typeSpec.build())
             .build()
@@ -260,17 +279,16 @@ class OkHttpClientInterfaceGenerator(
             }
 
             is ResponseBodySealedOption.Parametrized -> {
-                addStatement("if ((it.header(\"Content-Type\")?.indexOf(\"application/json\") ?: -1) < 0) {")
-                withIndent {
-                    addStatement("error(\"Unexpected content, status = \${it.code}, body = \${it.body?.string()}\")")
+                if (!itemDescriptor.isFile) {
+                    addStatement("%T(objectMapper.readValue(it.body?.byteStream(), %T::class.java)", cls, optionCls)
+                    if (itemDescriptor.headers != null) {
+                        add(", ")
+                        addResponseHeaders(itemDescriptor)
+                    }
+                    addStatement(")")
+                } else {
+                    addStatement("%T(readFileBody(it.body!!))", cls)
                 }
-                addStatement("}")
-                addStatement("%T(objectMapper.readValue(it.body?.byteStream(), %T::class.java)", cls, optionCls)
-                if (itemDescriptor.headers != null) {
-                    add(", ")
-                    addResponseHeaders(itemDescriptor)
-                }
-                addStatement(")")
             }
         }
     }

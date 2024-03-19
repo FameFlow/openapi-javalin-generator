@@ -4,13 +4,13 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 
 private val cat = Pet(1, "Cat", "orange")
 private val dog = Pet(2, "Dog", "black")
 private val customPet = CustomPet(
     listOf(3, 4),
     listOf("one", "two"),
-    mapOf("someKey" to "someValue")
 )
 
 class SampleTest {
@@ -104,11 +104,21 @@ class SampleTest {
         )
         Assertions.assertEquals(res, CustomPetResponse.Ok)
     }
+
+    @Test
+    fun shouldGetPetAvatar() {
+        val avatar = (petClinicClient.getAvatarByPetId("some-pet") as GetAvatarByPetIdResponse.File)
+            .file
+
+        val bytes = avatar.readBytes()
+        Assertions.assertArrayEquals(byteArrayOf(1, 2, 3), bytes)
+        avatar.delete()
+    }
 }
 
 class PetServer : SampleSpec {
 
-    private lateinit var pets: MutableMap<Int, Pet>
+    private lateinit var pets: MutableMap<Long, Pet>
 
     init {
         reInit()
@@ -143,12 +153,19 @@ class PetServer : SampleSpec {
 
     override fun showPetById(petId: String, `x-version`: String): ShowPetByIdResponse {
         require(`x-version` == "1.2")
-        val pet = pets[petId.toInt()]
+        val pet = pets[petId.toLong()]
         return if (pet != null) {
             ShowPetByIdResponse.Pet(pet)
         } else {
             ShowPetByIdResponse.Error(Error(404, "Not found"))
         }
+    }
+
+    override fun getAvatarByPetId(petId: String): GetAvatarByPetIdResponse {
+        val avatar = Files.createTempFile("tmp-", ".tmp").toFile()
+        avatar.deleteOnExit()
+        avatar.writeBytes(byteArrayOf(1, 2, 3))
+        return GetAvatarByPetIdResponse.File(avatar)
     }
 
     fun reInit() {

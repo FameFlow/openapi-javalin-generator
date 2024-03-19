@@ -19,7 +19,8 @@ data class ResponseBody(
 
 sealed class ResponseBodySealedOption(val clsName: String, val headers: TypeDescriptor.Object?) {
     class JustStatus(clsName: String, headers: TypeDescriptor.Object?) : ResponseBodySealedOption(clsName, headers)
-    class Parametrized(clsName: String, headers: TypeDescriptor.Object?) : ResponseBodySealedOption(clsName, headers)
+    class Parametrized(clsName: String, headers: TypeDescriptor.Object?, val isFile: Boolean) :
+        ResponseBodySealedOption(clsName, headers)
 }
 
 data class ResponseHeader(

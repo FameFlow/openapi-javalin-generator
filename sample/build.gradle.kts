@@ -25,6 +25,10 @@ tasks.create("foo") {
     dependsOn("generateOpenApiClasses")
 }
 
+tasks.getByName("generateOpenApiClasses") { // this is needed to run the task for debugging
+    outputs.upToDateWhen { false }
+}
+
 kotlin {
     jvmToolchain(11)
 }

@@ -47,7 +47,7 @@ class FunctionalTest {
         GradleRunner.create()
             .withProjectDir(projectDir)
             .withDebug(true)
-            .withArguments("generateOpenApiClasses")
+            .withArguments("generateOpenApiClasses", "--stacktrace")
             .forwardOutput()
             .withPluginClasspath()
             .build()
