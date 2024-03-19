@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName.Companion.bestGuess
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.nio.file.Path
 
 private val log = LoggerFactory.getLogger(TypesGenerator::class.java)
@@ -27,6 +28,57 @@ class TypesGenerator(
                 generateTypeDescriptor(operationDescriptor.requestBody.type, true)
             }
         }
+
+        val fileUploadType = TypeSpec.classBuilder(ClassName(basePackageName, "FileUpload"))
+            .addModifiers(KModifier.DATA)
+            .primaryConstructor(
+                FunSpec.constructorBuilder()
+                    .addParameter(ParameterSpec.builder("name", String::class).build())
+                    .addParameter(ParameterSpec.builder("file", File::class).build())
+                    .addParameter(ParameterSpec.builder("contentType", String::class).build())
+                    .build()
+            )
+            .addProperty(PropertySpec.builder("name", String::class).initializer("name").build())
+            .addProperty(PropertySpec.builder("file", File::class).initializer("file").build())
+            .addProperty(PropertySpec.builder("contentType", String::class).initializer("contentType").build())
+            .build()
+
+        FileSpec.builder(ClassName(basePackageName, "FileUpload"))
+            .addType(fileUploadType)
+            .build()
+            .writeTo(baseGenPath)
+
+        val cleanupHandlerType = TypeSpec.classBuilder(ClassName(basePackageName, "CleanupHandler"))
+            .addProperty(
+                PropertySpec.builder(
+                    "resources",
+                    ClassName("kotlin.collections", "MutableList")
+                        .parameterizedBy(Runnable::class.java.asTypeName())
+                ).initializer(codeBlock = buildCodeBlock {
+                    add("mutableListOf()")
+                }).build()
+            )
+            .addFunction(
+                FunSpec.builder("add")
+                    .addParameter("runnable", Runnable::class.java)
+                    .addCode(buildCodeBlock {
+                        add("resources.add(runnable)")
+                    })
+                    .build()
+            )
+            .addFunction(
+                FunSpec.builder("cleanup")
+                    .addCode(buildCodeBlock {
+                        add("resources.forEach { it.run() }")
+                    })
+                    .returns(UNIT)
+                    .build()
+            )
+            .build()
+        FileSpec.builder(ClassName(basePackageName, "CleanupHandler"))
+            .addType(cleanupHandlerType)
+            .build()
+            .writeTo(baseGenPath)
     }
 
     private fun generateTypeDescriptor(
@@ -143,11 +195,14 @@ class TypesGenerator(
                     .writeTo(baseGenPath)
                 typeName
             }
+
             TypeDescriptor.Int64Type -> Long::class.java.asTypeName()
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
             TypeDescriptor.FloatType -> Float::class.java.asTypeName()
             TypeDescriptor.StringType -> ClassName("kotlin", "String")
             TypeDescriptor.BooleanType -> Boolean::class.java.asTypeName()
+            TypeDescriptor.FileUploadType -> ClassName(basePackageName, "FileUpload")
+            TypeDescriptor.FileType -> File::class.java.asTypeName()
         }
         return basicType.copy(nullable = !required)
     }

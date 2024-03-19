@@ -6,7 +6,7 @@ import java.nio.file.Path
 class JavalinControllerGenerator(
     private val specMetadata: SpecMetadata,
     private val basePackageName: String,
-    private val baseGenerationPath: Path
+    private val baseGenerationPath: Path,
 ) {
 
     fun generate() {
@@ -95,6 +95,26 @@ class JavalinControllerGenerator(
                     addStatement(
                         "throw %T(details = mapOf(\"type\" to \"noBodyFound\"))",
                         ClassName("io.javalin.http", "BadRequestResponse")
+                    )
+                })
+                .build()
+        )
+
+        typeBuilder.addFunction(
+            FunSpec.builder("getFileFromBody")
+                .addParameter(ParameterSpec("ctx", ClassName("io.javalin.http", "Context")))
+                .addParameter(ParameterSpec("fileName", String::class.asTypeName()))
+                .addParameter(ParameterSpec("cleanupHandler", ClassName(basePackageName, "CleanupHandler")))
+                .returns(ClassName(basePackageName, "FileUpload").copy(nullable = true))
+                .addCode(buildCodeBlock {
+                    add(
+                        """
+                        val uploadedFile = ctx.uploadedFile(fileName) ?: return null
+                        val file = %T.createTempFile("part-", ".tmp")
+                        uploadedFile.content().copyTo(file.outputStream())
+                        cleanupHandler.add { file.delete() }
+                        return FileUpload(name = uploadedFile.filename(), file, uploadedFile.contentType()!!)
+                    """.trimIndent(), ClassName("java.io", "File")
                     )
                 })
                 .build()
@@ -213,8 +233,11 @@ class JavalinControllerGenerator(
     private fun CodeBlock.Builder.addResponseProcessingCode(
         requestBody: RequestBody?,
         operationDescriptor: OperationDescriptor,
-        parameters: CodeBlock
+        parameters: CodeBlock,
     ) {
+        addStatement("val cleanupHandler = %T()", ClassName(basePackageName, "CleanupHandler"))
+        addStatement("try {")
+        indent()
         val requestBodyBlock = if (requestBody != null) {
             buildCodeBlock {
                 addStatement("val body = getValidBody { when (ctx.contentType()?.split(\";\")?.first()) {")
@@ -267,6 +290,34 @@ class JavalinControllerGenerator(
                             RequestBodyMediaType.Xml -> buildCodeBlock {
                                 addStatement("TODO(\"Not implemented\")")
                             }
+
+                            RequestBodyMediaType.MultipartFormData -> buildCodeBlock {
+                                val rootCls = ClassName(
+                                    basePackageName,
+                                    requestBody.clsName,
+                                    key.clsName
+                                )
+
+                                val targetCls = value as TypeDescriptor.Object
+                                addStatement(
+                                    "%T(%T(", rootCls, ClassName(
+                                        basePackageName,
+                                        targetCls.clsName!!
+                                    )
+                                )
+                                withIndent {
+                                    for (property in targetCls.properties) {
+                                        require(property.type is TypeDescriptor.FileUploadType) {
+                                            "Other types are not implemented, type = ${property.type}"
+                                        }
+                                        addStatement(
+                                            "%L = getFileFromBody(ctx, %S, cleanupHandler)!!",
+                                            property.name, property.name
+                                        )
+                                    }
+                                }
+                                addStatement("))")
+                            }
                         }
                         add("%S -> ", key.mediaType)
                         add(parser)
@@ -309,6 +360,12 @@ class JavalinControllerGenerator(
                 }
                 .addStatement("}")
         })
+        unindent()
+        addStatement("} finally {")
+        withIndent {
+            addStatement("cleanupHandler.cleanup()")
+        }
+        addStatement("}")
     }
 }
 
@@ -337,7 +394,7 @@ private fun CodeBlock.Builder.addHeaders(option: ResponseBodySealedOption) {
 
 inline fun CodeBlock.Builder.withIndent(
     steps: Int = 1,
-    builderAction: CodeBlock.Builder.() -> Unit
+    builderAction: CodeBlock.Builder.() -> Unit,
 ): CodeBlock.Builder {
     for (i in 0..steps) {
         indent()

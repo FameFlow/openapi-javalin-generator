@@ -128,7 +128,9 @@ class OkHttpClientInterfaceGenerator(
 
         })
 
+
         val toRequestBody = MemberName("okhttp3.RequestBody.Companion", "toRequestBody")
+        val asRequestBody = MemberName("okhttp3.RequestBody.Companion", "asRequestBody")
         if (operation.requestBody != null) {
             funSpec.addCode(buildCodeBlock {
                 addStatement("when (val body = requestBody) {")
@@ -164,6 +166,33 @@ class OkHttpClientInterfaceGenerator(
                             }
 
                             RequestBodyMediaType.Xml -> add("TODO(\"Not implemented\")")
+                            RequestBodyMediaType.MultipartFormData -> add(buildCodeBlock {
+                                addStatement("%T.Builder()", ClassName("okhttp3", "MultipartBody"))
+                                withIndent {
+                                    addStatement(".setType(%T.FORM)", ClassName("okhttp3", "MultipartBody"))
+                                    type.properties.forEach { property ->
+                                        require(property.required) { "Not required part is not implemented" }
+                                        if (property.type is TypeDescriptor.FileUploadType) {
+                                            addStatement(
+                                                ".addFormDataPart(%S, %L, %L.%M(%L.%M()))",
+                                                property.name,
+                                                "body.$propertyName.${property.name}.name",
+                                                "body.$propertyName.${property.name}.file",
+                                                asRequestBody,
+                                                "body.$propertyName.${property.name}.contentType",
+                                                toMediaType
+                                            )
+                                        } else {
+                                            addStatement(
+                                                ".addFormDataPart(%S, %L)",
+                                                property.name,
+                                                "body.$propertyName.${property.name}"
+                                            )
+                                        }
+                                    }
+                                }
+                                addStatement(".build()")
+                            })
                         }
                         addStatement(")")
                     }
@@ -265,6 +294,7 @@ class OkHttpClientInterfaceGenerator(
             TypeDescriptor.FloatType -> Float::class.java.asTypeName()
             TypeDescriptor.StringType -> ClassName("kotlin", "String")
             TypeDescriptor.BooleanType -> Boolean::class.java.asTypeName()
+            TypeDescriptor.FileUploadType -> ClassName(basePackageName, "FileUpload")
             else -> error("Unsupported type")
         }
         return baseType.copy(nullable = !paramDescriptor.required)

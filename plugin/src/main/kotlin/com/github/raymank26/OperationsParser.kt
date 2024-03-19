@@ -96,6 +96,7 @@ class OperationsParser(private val spec: OpenAPI) {
                 "application/json" -> RequestBodyMediaType.Json
                 "application/xml" -> RequestBodyMediaType.Xml
                 "application/x-www-form-urlencoded" -> RequestBodyMediaType.FormData
+                "multipart/form-data" -> RequestBodyMediaType.MultipartFormData
                 else -> error("Not implemented")
             }
             optionName to parseTypeDescriptor(ref, clsName, schema)
@@ -228,7 +229,7 @@ class OperationsParser(private val spec: OpenAPI) {
         }
         return when (val type = property.type) {
             "integer" -> if (property.format == "int64") TypeDescriptor.Int64Type else TypeDescriptor.IntType
-            "string" -> TypeDescriptor.StringType
+            "string" -> if (property.format == "binary") TypeDescriptor.FileUploadType else TypeDescriptor.StringType
             "number" -> TypeDescriptor.FloatType
             "boolean" -> TypeDescriptor.BooleanType
             "array" -> {

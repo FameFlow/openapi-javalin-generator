@@ -50,8 +50,8 @@ sealed class RequestBodyMediaType(val clsName: String, val mediaType: String) {
     data object Json : RequestBodyMediaType("Json", "application/json")
     data object Xml : RequestBodyMediaType("Xml", "application/xml")
     data object FormData : RequestBodyMediaType("Form", "application/x-www-form-urlencoded")
+    data object MultipartFormData : RequestBodyMediaType("MultipartForm", "multipart/form-data")
 }
-
 
 sealed interface TypeDescriptor {
 
@@ -70,6 +70,10 @@ sealed interface TypeDescriptor {
     data object FloatType : TypeDescriptor
 
     data object IntType : TypeDescriptor
+
+    data object FileUploadType : TypeDescriptor
+
+    data object FileType : TypeDescriptor
 
     data class RefType(val name: String) : TypeDescriptor
 }
