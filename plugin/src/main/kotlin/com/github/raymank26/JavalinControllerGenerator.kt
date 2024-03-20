@@ -111,10 +111,14 @@ class JavalinControllerGenerator(
                         """
                         val uploadedFile = ctx.uploadedFile(fileName) ?: return null
                         val file = %T.createTempFile("part-", ".tmp")
-                        uploadedFile.content().copyTo(file.outputStream())
+                        file.outputStream().%M().use {
+                            uploadedFile.content().copyTo(it)
+                        }
                         cleanupHandler.add { file.delete() }
                         return FileUpload(name = uploadedFile.filename(), file, uploadedFile.contentType()!!)
-                    """.trimIndent(), ClassName("java.io", "File")
+                    """.trimIndent(),
+                        ClassName("java.io", "File"),
+                        MemberName("kotlin.io", "buffered")
                     )
                 })
                 .build()

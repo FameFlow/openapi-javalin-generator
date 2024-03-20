@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
+import kotlin.io.path.writeBytes
 
 private val cat = Pet(1, "Cat", "orange")
 private val dog = Pet(2, "Dog", "black")
@@ -114,11 +115,28 @@ class SampleTest {
         Assertions.assertArrayEquals(byteArrayOf(1, 2, 3), bytes)
         avatar.delete()
     }
+
+    @Test
+    fun shouldUpdatePetAvatar() {
+        val tempPath = Files.createTempFile("tmp-", ".tmp")
+        val photoContent = byteArrayOf(5, 3, 2, 3)
+
+        tempPath.writeBytes(photoContent)
+        tempPath.toFile().deleteOnExit()
+        val fileUpload = FileUpload("avatar.jpg", tempPath.toFile(), "image/jpeg")
+        val res = petClinicClient.updateAvatarById(
+            "some-pet", UpdateAvatarByIdRequest.MultipartForm(AvatarUpload(fileUpload))
+        )
+
+        Assertions.assertInstanceOf(UpdateAvatarByIdResponse.Ok::class.java, res)
+        Assertions.assertArrayEquals(petServer.lastUpdatedPetAvatar, photoContent)
+    }
 }
 
 class PetServer : SampleSpec {
 
     private lateinit var pets: MutableMap<Long, Pet>
+    var lastUpdatedPetAvatar: ByteArray? = null
 
     init {
         reInit()
@@ -166,6 +184,12 @@ class PetServer : SampleSpec {
         avatar.deleteOnExit()
         avatar.writeBytes(byteArrayOf(1, 2, 3))
         return GetAvatarByPetIdResponse.File(avatar)
+    }
+
+    override fun updateAvatarById(petId: String, requestBody: UpdateAvatarByIdRequest): UpdateAvatarByIdResponse {
+        val filePhoto = (requestBody as UpdateAvatarByIdRequest.MultipartForm).avatarUpload.photo.file
+        lastUpdatedPetAvatar = filePhoto.readBytes()
+        return UpdateAvatarByIdResponse.Ok
     }
 
     fun reInit() {

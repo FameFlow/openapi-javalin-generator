@@ -144,6 +144,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
   /pets/{petId}/avatar:
+    post:
+      summary: Upload avatar of a pet
+      operationId: updateAvatarById
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: The id of the pet
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUpload'
+      responses:
+        '200':
+          description: OK
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       summary: Get avatar of a pet
       operationId: getAvatarByPetId
@@ -205,6 +232,14 @@ components:
     PetAvatar:
       type: string
       format: binary
+    AvatarUpload:
+      type: object
+      required:
+        - photo
+      properties:
+        photo:
+          type: string
+          format: binary
     Error:
       type: "object"
       required:

@@ -68,13 +68,16 @@ class OkHttpClientInterfaceGenerator(
                 .addCode(
                     """
                         val path = %T.createTempFile("tmp-", ".tmp")
-                        body.byteStream().copyTo(path.%M())
+                        path.%M().%M().use {
+                            body.byteStream().copyTo(it)
+                        }
                         val file = path.toFile()
                         file.deleteOnExit()
                         return file
             """.trimIndent(),
                     ClassName("java.nio.file", "Files"),
-                    MemberName("kotlin.io.path", "outputStream")
+                    MemberName("kotlin.io.path", "outputStream"),
+                    MemberName("kotlin.io", "buffered")
                 )
                 .build()
         )
