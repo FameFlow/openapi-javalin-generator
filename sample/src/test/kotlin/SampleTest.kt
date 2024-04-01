@@ -125,11 +125,12 @@ class SampleTest {
         tempPath.toFile().deleteOnExit()
         val fileUpload = FileUpload("avatar.jpg", tempPath.toFile(), "image/jpeg")
         val res = petClinicClient.updateAvatarById(
-            "some-pet", UpdateAvatarByIdRequest.MultipartForm(AvatarUpload(fileUpload))
+            "some-pet", UpdateAvatarByIdRequest.MultipartForm(AvatarUpload("some-type", fileUpload))
         )
 
         Assertions.assertInstanceOf(UpdateAvatarByIdResponse.Ok::class.java, res)
         Assertions.assertArrayEquals(petServer.lastUpdatedPetAvatar, photoContent)
+        Assertions.assertEquals(petServer.avatarType, "some-type")
     }
 }
 
@@ -137,6 +138,7 @@ class PetServer : SampleSpec {
 
     private lateinit var pets: MutableMap<Long, Pet>
     var lastUpdatedPetAvatar: ByteArray? = null
+    var avatarType: String? = null
 
     init {
         reInit()
@@ -187,8 +189,10 @@ class PetServer : SampleSpec {
     }
 
     override fun updateAvatarById(petId: String, requestBody: UpdateAvatarByIdRequest): UpdateAvatarByIdResponse {
-        val filePhoto = (requestBody as UpdateAvatarByIdRequest.MultipartForm).avatarUpload.photo.file
+        val body = (requestBody as UpdateAvatarByIdRequest.MultipartForm).avatarUpload
+        val filePhoto = body.photo.file
         lastUpdatedPetAvatar = filePhoto.readBytes()
+        avatarType = body.type
         return UpdateAvatarByIdResponse.Ok
     }
 

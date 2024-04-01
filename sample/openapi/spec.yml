@@ -235,8 +235,11 @@ components:
     AvatarUpload:
       type: object
       required:
+        - type
         - photo
       properties:
+        type:
+          type: string
         photo:
           type: string
           format: binary

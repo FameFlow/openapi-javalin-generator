@@ -261,16 +261,7 @@ class JavalinControllerGenerator(
                                 )
                                 withIndent(3) {
                                     targetObj.properties.forEach { property ->
-                                        add("ctx.formParam(%S)", property.name)
-                                        add(if (property.required) "!!" else "?")
-                                        when (property.type) {
-                                            TypeDescriptor.Int64Type -> addStatement(".toLong(),")
-                                            TypeDescriptor.IntType -> addStatement(".toInt(),")
-                                            TypeDescriptor.FloatType -> addStatement(".toFloat(),")
-                                            TypeDescriptor.StringType -> addStatement(".toString(),")
-                                            TypeDescriptor.StringType -> addStatement(".toBooleanStrict(),")
-                                            else -> error("Not supported type = ${property.type}")
-                                        }
+                                        addFormParam(property)
                                     }
                                 }
                                 addStatement("))")
@@ -311,13 +302,14 @@ class JavalinControllerGenerator(
                                 )
                                 withIndent {
                                     for (property in targetCls.properties) {
-                                        require(property.type is TypeDescriptor.FileUploadType) {
-                                            "Other types are not implemented, type = ${property.type}"
+                                        if (property.type is TypeDescriptor.FileUploadType) {
+                                            addStatement(
+                                                "getFileFromBody(ctx, %S, cleanupHandler)%L,",
+                                                property.name, if (property.required) "!!" else ""
+                                            )
+                                        } else {
+                                            addFormParam(property)
                                         }
-                                        addStatement(
-                                            "%L = getFileFromBody(ctx, %S, cleanupHandler)!!",
-                                            property.name, property.name
-                                        )
                                     }
                                 }
                                 addStatement("))")
@@ -384,6 +376,19 @@ class JavalinControllerGenerator(
             addStatement("cleanupHandler.cleanup()")
         }
         addStatement("}")
+    }
+
+    private fun CodeBlock.Builder.addFormParam(property: TypePropertyDescriptor) {
+        add("ctx.formParam(%S)", property.name)
+        add(if (property.required) "!!" else "?")
+        when (property.type) {
+            TypeDescriptor.Int64Type -> addStatement(".toLong(),")
+            TypeDescriptor.IntType -> addStatement(".toInt(),")
+            TypeDescriptor.FloatType -> addStatement(".toFloat(),")
+            TypeDescriptor.StringType -> addStatement(".toString(),")
+            TypeDescriptor.StringType -> addStatement(".toBooleanStrict(),")
+            else -> error("Not supported type = ${property.type}")
+        }
     }
 }
 
