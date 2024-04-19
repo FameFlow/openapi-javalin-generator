@@ -387,6 +387,10 @@ class JavalinControllerGenerator(
             TypeDescriptor.FloatType -> addStatement(".toFloat(),")
             TypeDescriptor.StringType -> addStatement(".toString(),")
             TypeDescriptor.StringType -> addStatement(".toBooleanStrict(),")
+            is TypeDescriptor.RefType -> addStatement(
+                ".let { %T(it) },",
+                ClassName(basePackageName, property.type.name.split("/").last())
+            )
             else -> error("Not supported type = ${property.type}")
         }
     }

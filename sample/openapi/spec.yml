@@ -224,11 +224,13 @@ components:
         name:
           type: string
         tag:
-          type: string
+          $ref: '#/components/schemas/PetTag'
     Pets:
       type: array
       items:
         $ref: '#/components/schemas/Pet'
+    PetTag:
+      type: string
     PetAvatar:
       type: string
       format: binary

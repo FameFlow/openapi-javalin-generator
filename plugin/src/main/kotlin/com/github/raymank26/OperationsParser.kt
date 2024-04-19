@@ -211,8 +211,11 @@ class OperationsParser(private val spec: OpenAPI) {
                 TypeDescriptor.Object(clsName, properties)
             }
             "string" -> {
-                require(schema.format == "binary")
-                TypeDescriptor.FileType
+                if (schema.format == "binary") {
+                    TypeDescriptor.FileType
+                } else {
+                    TypeDescriptor.SingleValueType(clsName!!, TypeDescriptor.StringType)
+                }
             }
             null -> TypeDescriptor.Object(clsName, emptyList())
             else -> error("not supported type = " + schema.type)

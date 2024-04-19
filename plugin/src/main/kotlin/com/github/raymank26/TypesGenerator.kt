@@ -196,6 +196,49 @@ class TypesGenerator(
                 typeName
             }
 
+            is TypeDescriptor.SingleValueType -> {
+                val name = value.clsName
+                alreadyGenerated[name]?.let {
+                    return it
+                }
+                val clsBuilder = TypeSpec.classBuilder(name)
+                    .addModifiers(KModifier.DATA)
+                val type = generateTypeDescriptor(value.property, true)
+                clsBuilder.primaryConstructor(
+                    FunSpec.constructorBuilder()
+                        .addParameter(
+                            ParameterSpec.builder("content", type)
+                                .build()
+                        )
+                        .build()
+                )
+                val jsonProperty = AnnotationSpec
+                    .builder(ClassName("com.fasterxml.jackson.annotation", "JsonValue"))
+                    .build()
+                val jsonPropertyGetter = AnnotationSpec
+                    .builder(ClassName("com.fasterxml.jackson.annotation", "JsonValue"))
+                    .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                    .build()
+
+                clsBuilder.addProperty(
+                    PropertySpec.builder(
+                        name = "content",
+                        type = type
+                    )
+                        .addAnnotation(jsonProperty)
+                        .addAnnotation(jsonPropertyGetter)
+                        .initializer("content")
+                        .build()
+                )
+                val typeSpec = clsBuilder.build()
+                FileSpec.builder(basePackageName, value.clsName)
+                    .addType(typeSpec)
+                    .build()
+                    .writeTo(baseGenPath)
+                val typeName = bestGuess("$basePackageName.$name")
+                alreadyGenerated[value.clsName] = typeName
+                typeName
+            }
             TypeDescriptor.Int64Type -> Long::class.java.asTypeName()
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
             TypeDescriptor.FloatType -> Float::class.java.asTypeName()

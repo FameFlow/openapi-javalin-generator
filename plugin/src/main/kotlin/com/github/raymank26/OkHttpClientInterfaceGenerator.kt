@@ -168,11 +168,20 @@ class OkHttpClientInterfaceGenerator(
                                 addStatement("%T.Builder()", ClassName("okhttp3", "FormBody"))
                                 withIndent {
                                     type.properties.forEach { property ->
-                                        addStatement(
-                                            ".add(%S, %L.toString())",
-                                            property.name,
-                                            "body.$propertyName.${property.name}"
-                                        )
+                                        if (property.type is TypeDescriptor.RefType) {
+                                            val delim = if (property.required) "!!." else "?"
+                                            addStatement(
+                                                ".add(%S, %L.toString())",
+                                                property.name,
+                                                "body.$propertyName.${property.name}${delim}.content"
+                                            )
+                                        } else {
+                                            addStatement(
+                                                ".add(%S, %L.toString())",
+                                                property.name,
+                                                "body.$propertyName.${property.name}"
+                                            )
+                                        }
                                     }
                                 }
                                 addStatement(".build()")

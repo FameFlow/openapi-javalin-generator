@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import kotlin.io.path.writeBytes
 
-private val cat = Pet(1, "Cat", "orange")
-private val dog = Pet(2, "Dog", "black")
+private val cat = Pet(1, "Cat", PetTag("orange"))
+private val dog = Pet(2, "Dog", PetTag("black"))
 private val customPet = CustomPet(
     listOf(3, 4),
     listOf("one", "two"),
@@ -59,7 +59,7 @@ class SampleTest {
     @Test
     fun shouldCreatePetFormData() {
         // given
-        val pet = Pet(5, "Tiger", "animal")
+        val pet = Pet(5, "Tiger", PetTag("animal"))
 
         // when
         val createResponse = petClinicClient.createPet(CreatePetRequest.Form(pet))
@@ -74,7 +74,7 @@ class SampleTest {
     @Test
     fun shouldCreatePetFormJson() {
         // given
-        val pet = Pet(5, "Tiger", "animal")
+        val pet = Pet(5, "Tiger", PetTag("animal"))
 
         // when
         val createResponse = petClinicClient.createPet(CreatePetRequest.Json(pet))

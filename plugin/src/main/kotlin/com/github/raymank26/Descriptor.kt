@@ -62,6 +62,8 @@ sealed interface TypeDescriptor {
 
     data class OneOf(val clsName: String, val typeDescriptors: Map<String, List<TypeDescriptor>>) : TypeDescriptor
 
+    data class SingleValueType(val clsName: String, val property: TypeDescriptor) : TypeDescriptor
+
     data object StringType : TypeDescriptor
 
     data object BooleanType : TypeDescriptor

@@ -57,6 +57,7 @@ class SpecInterfaceGenerator(
             is TypeDescriptor.Object -> ClassName(basePackageName, name)
             is TypeDescriptor.OneOf -> ClassName(basePackageName, name)
             is TypeDescriptor.RefType -> ClassName(basePackageName, descriptor.name)
+            is TypeDescriptor.SingleValueType -> ClassName(basePackageName, name)
             TypeDescriptor.Int64Type -> Long::class.java.asTypeName()
             TypeDescriptor.IntType -> Int::class.java.asTypeName()
             TypeDescriptor.FileUploadType -> ClassName(basePackageName, "FileUpload")
