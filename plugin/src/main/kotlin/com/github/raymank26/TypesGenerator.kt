@@ -53,14 +53,14 @@ class TypesGenerator(
                 PropertySpec.builder(
                     "resources",
                     ClassName("kotlin.collections", "MutableList")
-                        .parameterizedBy(ClassName("java.lang", "Runnable"))
+                        .parameterizedBy(Runnable::class.java.asTypeName())
                 ).initializer(codeBlock = buildCodeBlock {
                     add("mutableListOf()")
                 }).build()
             )
             .addFunction(
                 FunSpec.builder("add")
-                    .addParameter("runnable", ClassName("java.lang", "Runnable"))
+                    .addParameter("runnable", Runnable::class.java)
                     .addCode(buildCodeBlock {
                         add("resources.add(runnable)")
                     })
