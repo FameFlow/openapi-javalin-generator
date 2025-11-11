@@ -1,7 +1,7 @@
 import com.github.raymank26.JavalinOpenApiPluginExtension
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.0"
     id("com.github.raymank26.javalin-openapi")
 }
 
