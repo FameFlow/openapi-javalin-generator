@@ -30,7 +30,7 @@ class FunctionalTest {
             writer.write(
                 """
                 plugins {
-                    id 'org.jetbrains.kotlin.jvm' version '1.9.10'
+                    id 'org.jetbrains.kotlin.jvm' version '2.0.21'
                     id 'com.github.raymank26.javalin-openapi'
                 }
                 

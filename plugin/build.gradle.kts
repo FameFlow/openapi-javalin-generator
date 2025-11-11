@@ -1,11 +1,11 @@
 plugins {
-    kotlin("jvm") version "1.9.0"
+    kotlin("jvm") version "2.0.21"
     `java-gradle-plugin`
     `maven-publish`
 }
 
 group = "com.github.raymank26"
-version = project.findProperty("version")?.takeIf { it != "unspecified" } ?: "1.20-SNAPSHOT"
+version = project.findProperty("version")?.takeIf { it != "unspecified" } ?: "1.3"
 
 repositories {
     mavenCentral()
