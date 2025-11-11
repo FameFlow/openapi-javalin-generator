@@ -72,7 +72,6 @@ class TypesGenerator(
                     .addCode(buildCodeBlock {
                         add("resources.forEach { it() }")
                     })
-                    .returns(UNIT)
                     .build()
             )
             .build()
