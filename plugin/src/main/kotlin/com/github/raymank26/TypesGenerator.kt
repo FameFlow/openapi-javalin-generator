@@ -48,20 +48,29 @@ class TypesGenerator(
             .build()
             .writeTo(baseGenPath)
 
-        val runnableType = LambdaTypeName.get(returnType = UNIT)
+        // Generate CleanupHandler - use fun interface to avoid kotlin.Unit import K2 compiler bug
+        val cleanupTaskInterface = TypeSpec.funInterfaceBuilder("CleanupTask")
+            .addFunction(
+                FunSpec.builder("run")
+                    .addModifiers(KModifier.ABSTRACT)
+                    .build()
+            )
+            .build()
+
         val cleanupHandlerType = TypeSpec.classBuilder(ClassName(basePackageName, "CleanupHandler"))
+            .addType(cleanupTaskInterface)
             .addProperty(
                 PropertySpec.builder(
                     "resources",
                     ClassName("kotlin.collections", "MutableList")
-                        .parameterizedBy(runnableType)
+                        .parameterizedBy(ClassName(basePackageName, "CleanupHandler").nestedClass("CleanupTask"))
                 ).initializer(codeBlock = buildCodeBlock {
                     add("mutableListOf()")
                 }).build()
             )
             .addFunction(
                 FunSpec.builder("add")
-                    .addParameter("runnable", runnableType)
+                    .addParameter("runnable", ClassName(basePackageName, "CleanupHandler").nestedClass("CleanupTask"))
                     .addCode(buildCodeBlock {
                         add("resources.add(runnable)")
                     })
@@ -70,11 +79,12 @@ class TypesGenerator(
             .addFunction(
                 FunSpec.builder("cleanup")
                     .addCode(buildCodeBlock {
-                        add("resources.forEach { it() }")
+                        add("resources.forEach { it.run() }")
                     })
                     .build()
             )
             .build()
+
         FileSpec.builder(ClassName(basePackageName, "CleanupHandler"))
             .addType(cleanupHandlerType)
             .build()
