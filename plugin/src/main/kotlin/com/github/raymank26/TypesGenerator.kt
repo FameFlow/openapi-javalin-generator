@@ -48,19 +48,20 @@ class TypesGenerator(
             .build()
             .writeTo(baseGenPath)
 
+        val runnableType = LambdaTypeName.get(returnType = UNIT)
         val cleanupHandlerType = TypeSpec.classBuilder(ClassName(basePackageName, "CleanupHandler"))
             .addProperty(
                 PropertySpec.builder(
                     "resources",
                     ClassName("kotlin.collections", "MutableList")
-                        .parameterizedBy(ClassName("java.lang", "Runnable"))
+                        .parameterizedBy(runnableType)
                 ).initializer(codeBlock = buildCodeBlock {
                     add("mutableListOf()")
                 }).build()
             )
             .addFunction(
                 FunSpec.builder("add")
-                    .addParameter("runnable", ClassName("java.lang", "Runnable"))
+                    .addParameter("runnable", runnableType)
                     .addCode(buildCodeBlock {
                         add("resources.add(runnable)")
                     })
@@ -69,7 +70,7 @@ class TypesGenerator(
             .addFunction(
                 FunSpec.builder("cleanup")
                     .addCode(buildCodeBlock {
-                        add("resources.forEach { it.run() }")
+                        add("resources.forEach { it() }")
                     })
                     .returns(UNIT)
                     .build()
